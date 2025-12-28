@@ -1,0 +1,48 @@
+﻿@page "/tournaments"
+@inject HttpClient Http
+
+<h3>🏆 Current Tournaments</h3>
+
+@if (tournaments == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Sport</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in tournaments)
+            {
+                <tr>
+                    <td>@t.nom</td>
+                    <td>@t.sport</td>
+                    <td>@t.lieu</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private TournamentDto[]? tournaments;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // This calls your API to get the list
+        tournaments = await Http.GetFromJsonAsync<TournamentDto[]>("api/Tournoi");
+    }
+
+    public class TournamentDto
+    {
+        public string nom { get; set; }
+        public string sport { get; set; }
+        public string lieu { get; set; }
+    }
+}

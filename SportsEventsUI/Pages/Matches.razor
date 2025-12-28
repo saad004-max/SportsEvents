@@ -1,0 +1,78 @@
+﻿@page "/matches"
+@inject HttpClient Http
+
+<h3>⚽ Match Results</h3>
+
+@if (matches == null)
+{
+    <p><em>Loading matches...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Tournament</th>
+                <th class="text-end">Home Team</th>
+                <th class="text-center">Score</th>
+                <th class="text-start">Away Team</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in matches)
+            {
+                <tr>
+                    <td>@m.date.ToShortDateString()</td>
+                    <td>@m.tournoi?.nom</td>
+                    <td class="text-end fw-bold">@m.equipe1?.nom</td>
+
+                    <td class="text-center bg-light border">
+                        @m.scoreEquipe1 - @m.scoreEquipe2
+                    </td>
+
+                    <td class="text-start fw-bold">@m.equipe2?.nom</td>
+
+                    <td>
+                        @if (m.statut == "Termine")
+                        {
+                            <span class="badge bg-success">Finished</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">@m.statut</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private MatchDto[]? matches;
+
+    protected override async Task OnInitializedAsync()
+    {
+        matches = await Http.GetFromJsonAsync<MatchDto[]>("api/Match");
+    }
+
+    // This class matches the JSON structure from your Backend
+    public class MatchDto
+    {
+        public int id { get; set; }
+        public DateTime date { get; set; }
+        public int scoreEquipe1 { get; set; }
+        public int scoreEquipe2 { get; set; }
+        public string statut { get; set; }
+
+        // Nested Objects (so we can get the names)
+        public TournoiDto? tournoi { get; set; }
+        public EquipeDto? equipe1 { get; set; }
+        public EquipeDto? equipe2 { get; set; }
+    }
+
+    public class TournoiDto { public string nom { get; set; } }
+    public class EquipeDto { public string nom { get; set; } }
+}

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SportsEventsManagement/SportsEventsManagement.csproj" />
+  <Project Path="SportsEventsUI/SportsEventsUI.csproj" Id="36e77539-06fe-4476-bce3-cca09730ff88" />
+</Solution>

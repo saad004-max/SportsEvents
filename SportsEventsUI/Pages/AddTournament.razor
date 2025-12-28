@@ -1,0 +1,67 @@
+﻿@page "/add-tournament"
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3>➕ Create New Tournament</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@newTournament" OnValidSubmit="SaveTournament">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label">Tournament Name</label>
+                <InputText class="form-control" @bind-Value="newTournament.nom" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Sport</label>
+                <InputText class="form-control" @bind-Value="newTournament.sport" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Location (Lieu)</label>
+                <InputText class="form-control" @bind-Value="newTournament.lieu" />
+            </div>
+
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label">Start Date</label>
+                    <InputDate class="form-control" @bind-Value="newTournament.dateDebut" />
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label">End Date</label>
+                    <InputDate class="form-control" @bind-Value="newTournament.dateFin" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">💾 Save Tournament</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private TournamentDto newTournament = new TournamentDto
+    {
+        dateDebut = DateTime.Today,
+        dateFin = DateTime.Today.AddDays(7)
+    };
+
+    private async Task SaveTournament()
+    {
+        // 1. Send the data to the API (Backend)
+        await Http.PostAsJsonAsync("api/Tournoi", newTournament);
+
+        // 2. Go back to the list so we can see the new tournament
+        Nav.NavigateTo("/tournaments");
+    }
+
+    public class TournamentDto
+    {
+        public string nom { get; set; } = "";
+        public string sport { get; set; } = "";
+        public string lieu { get; set; } = "";
+        public DateTime dateDebut { get; set; }
+        public DateTime dateFin { get; set; }
+    }
+}
