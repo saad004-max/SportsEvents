@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace SportsEventsManagement.Models
 {
@@ -11,9 +10,14 @@ namespace SportsEventsManagement.Models
         public DateTime DateFin { get; set; }
         public string Lieu { get; set; } = string.Empty;
         public string Sport { get; set; } = string.Empty;
+
+        // Default status is "Brouillon" as per your design
         public string Statut { get; set; } = "Brouillon";
 
-        // Lists to hold related data
+        // [NEW] Limit the number of teams (e.g., 8, 16, 32)
+        public int NombreEquipesMax { get; set; } = 16;
+
+        // Lists
         public List<Equipe> Equipes { get; set; } = new List<Equipe>();
         public List<Match> Matchs { get; set; } = new List<Match>();
     }

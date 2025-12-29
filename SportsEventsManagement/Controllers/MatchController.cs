@@ -16,67 +16,33 @@ namespace SportsEventsManagement.Controllers
             _context = context;
         }
 
-        // GET: api/Match
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Match>>> GetMatches()
+        public async Task<ActionResult<IEnumerable<Match>>> GetMatchs()
         {
-            // Include details about the teams and tournament so you see names, not just IDs
             return await _context.Matchs
-                .Include(m => m.Equipe1)
-                .Include(m => m.Equipe2)
-                .Include(m => m.Tournoi)
+                .Include(m => m.EquipeDomicile)
+                .Include(m => m.EquipeExterieur)
                 .ToListAsync();
         }
 
-        // POST: api/Match
-        [HttpPost]
-        public async Task<ActionResult<Match>> CreateMatch(Match match)
-        {
-            _context.Matchs.Add(match);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetMatches), new { id = match.Id }, match);
-        }
-
-        // PUT: api/Match/5 (To update scores later)
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateMatch(int id, Match match)
-        {
-            if (id != match.Id) return BadRequest();
-
-            _context.Entry(match).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        // DELETE: api/Match/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMatch(int id)
+        [HttpPut("{id}/score")]
+        public async Task<IActionResult> UpdateScore(int id, [FromBody] ScoreUpdateDto scoreDto)
         {
             var match = await _context.Matchs.FindAsync(id);
             if (match == null) return NotFound();
 
-            _context.Matchs.Remove(match);
+            match.ScoreDomicile = scoreDto.ScoreDomicile;
+            match.ScoreExterieur = scoreDto.ScoreExterieur;
+
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { message = "Score mis à jour", match });
         }
-    
-    // PATCH: api/Match/5/score
-        // This specific endpoint updates ONLY the score and status
-        [HttpPatch("{id}/score")]
-        public async Task<IActionResult> UpdateScore(int id, int score1, int score2)
-        {
-            var match = await _context.Matchs.FindAsync(id);
-            if (match == null) return NotFound();
-
-            // Update the data
-            match.ScoreEquipe1 = score1;
-            match.ScoreEquipe2 = score2;
-            match.Statut = "Termine"; // Mark match as Finished
-
-            await _context.SaveChangesAsync();
-            return Ok(match);
-        } }
     }
+
+    public class ScoreUpdateDto
+    {
+        public int ScoreDomicile { get; set; }
+        public int ScoreExterieur { get; set; }
+    }
+}

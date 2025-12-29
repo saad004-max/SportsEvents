@@ -9,30 +9,28 @@ namespace SportsEventsManagement.Data
         {
         }
 
-        // These lines create the tables in your database
-        public DbSet<Utilisateur> Utilisateurs { get; set; }
-        public DbSet<Tournoi> Tournois { get; set; }
+        // --- ALL TABLES ---
         public DbSet<Equipe> Equipes { get; set; }
+        public DbSet<Tournoi> Tournois { get; set; }
         public DbSet<Match> Matchs { get; set; }
+        public DbSet<Joueur> Joueurs { get; set; }
+        public DbSet<Utilisateur> Utilisateurs { get; set; } // <--- This was missing!
 
-        // --- PASTE STARTS HERE ---
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
-            // Safety Rule: Stop SQL Server from complaining about "Loops" when deleting teams
+            // Configure Match - Home Team relationship
             modelBuilder.Entity<Match>()
-                .HasOne(m => m.Equipe1)
+                .HasOne(m => m.EquipeDomicile)
                 .WithMany()
-                .HasForeignKey(m => m.Equipe1Id)
-                .OnDelete(DeleteBehavior.Restrict); // If Team 1 is deleted, STOP (don't delete the match automatically)
+                .HasForeignKey(m => m.EquipeDomicileId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // Configure Match - Away Team relationship
             modelBuilder.Entity<Match>()
-                .HasOne(m => m.Equipe2)
+                .HasOne(m => m.EquipeExterieur)
                 .WithMany()
-                .HasForeignKey(m => m.Equipe2Id)
-                .OnDelete(DeleteBehavior.Restrict); // If Team 2 is deleted, STOP
+                .HasForeignKey(m => m.EquipeExterieurId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
-        // --- PASTE ENDS HERE ---
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SportsEventsManagement.Data;
 
@@ -11,9 +12,11 @@ using SportsEventsManagement.Data;
 namespace SportsEventsManagement.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251229095548_AddTournoiMaxLimit")]
+    partial class AddTournoiMaxLimit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,36 +55,6 @@ namespace SportsEventsManagement.Migrations
                     b.ToTable("Equipes");
                 });
 
-            modelBuilder.Entity("SportsEventsManagement.Models.Joueur", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EquipeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Poste")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Prenom")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EquipeId");
-
-                    b.ToTable("Joueurs");
-                });
-
             modelBuilder.Entity("SportsEventsManagement.Models.Match", b =>
                 {
                     b.Property<int>("Id")
@@ -90,33 +63,37 @@ namespace SportsEventsManagement.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("DateMatch")
+                    b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("EquipeDomicileId")
+                    b.Property<int>("Equipe1Id")
                         .HasColumnType("int");
 
-                    b.Property<int?>("EquipeExterieurId")
+                    b.Property<int>("Equipe2Id")
                         .HasColumnType("int");
 
                     b.Property<string>("Lieu")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ScoreDomicile")
+                    b.Property<int>("ScoreEquipe1")
                         .HasColumnType("int");
 
-                    b.Property<int>("ScoreExterieur")
+                    b.Property<int>("ScoreEquipe2")
                         .HasColumnType("int");
+
+                    b.Property<string>("Statut")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TournoiId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EquipeDomicileId");
+                    b.HasIndex("Equipe1Id");
 
-                    b.HasIndex("EquipeExterieurId");
+                    b.HasIndex("Equipe2Id");
 
                     b.HasIndex("TournoiId");
 
@@ -203,28 +180,19 @@ namespace SportsEventsManagement.Migrations
                     b.Navigation("Tournoi");
                 });
 
-            modelBuilder.Entity("SportsEventsManagement.Models.Joueur", b =>
-                {
-                    b.HasOne("SportsEventsManagement.Models.Equipe", "Equipe")
-                        .WithMany()
-                        .HasForeignKey("EquipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Equipe");
-                });
-
             modelBuilder.Entity("SportsEventsManagement.Models.Match", b =>
                 {
-                    b.HasOne("SportsEventsManagement.Models.Equipe", "EquipeDomicile")
+                    b.HasOne("SportsEventsManagement.Models.Equipe", "Equipe1")
                         .WithMany()
-                        .HasForeignKey("EquipeDomicileId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("Equipe1Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("SportsEventsManagement.Models.Equipe", "EquipeExterieur")
+                    b.HasOne("SportsEventsManagement.Models.Equipe", "Equipe2")
                         .WithMany()
-                        .HasForeignKey("EquipeExterieurId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("Equipe2Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("SportsEventsManagement.Models.Tournoi", "Tournoi")
                         .WithMany("Matchs")
@@ -232,9 +200,9 @@ namespace SportsEventsManagement.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("EquipeDomicile");
+                    b.Navigation("Equipe1");
 
-                    b.Navigation("EquipeExterieur");
+                    b.Navigation("Equipe2");
 
                     b.Navigation("Tournoi");
                 });

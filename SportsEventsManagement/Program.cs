@@ -1,14 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using SportsEventsManagement.Data;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
 // Fix for Infinite Loops (Match -> Team -> Match...)
-builder.Services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-});
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 // Allow the Blazor Frontend to talk to this API
 builder.Services.AddCors(options =>
 {
