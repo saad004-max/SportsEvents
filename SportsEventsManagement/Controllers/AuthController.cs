@@ -27,14 +27,25 @@ namespace SportsEventsManagement.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(string email, string password)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _authService.Login(email, password);
-            if (user == null)
+            // [CHANGE] Call the service which now returns a Token (string)
+            var token = await _authService.Login(request.Email, request.Password);
+
+            if (token == null)
             {
                 return Unauthorized("Invalid email or password.");
             }
-            return Ok(user);
+
+            // [CHANGE] Return the token inside a JSON object
+            return Ok(new { Token = token });
+        }
+
+        // [NEW] Helper class to read the JSON body sent by the frontend
+        public class LoginRequest
+        {
+            public string Email { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
         }
     }
 }
