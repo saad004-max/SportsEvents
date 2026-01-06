@@ -1,0 +1,106 @@
+﻿@page "/tournaments/{Id:int}/bracket"
+@inject HttpClient Http
+@using System.Text.Json
+
+<div class="container" style="max-width: 1000px; margin: 40px auto;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px;">
+        <h1>Tournament <span style="color: var(--accent-sport);">Bracket</span></h1>
+        <a href="/tournaments/@Id" class="btn-sport" style="text-decoration:none; font-size:0.9rem;">
+            ← Back to Info
+        </a>
+    </div>
+
+    @if (matches == null)
+    {
+        <div style="text-align: center; margin-top: 50px;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p style="color: var(--text-muted); margin-top: 10px;">Loading fixtures...</p>
+        </div>
+    }
+    else if (matches.Count == 0)
+    {
+        <div class="sport-card" style="text-align: center; padding: 40px;">
+            <h3 style="color: var(--text-muted);">No matches scheduled yet.</h3>
+            <p style="color: var(--text-muted);">The bracket will appear here once the tournament starts.</p>
+        </div>
+    }
+    else
+    {
+        var rounds = matches.Select(m => m.tour).Distinct().OrderBy(t => t);
+
+        @foreach (var round in rounds)
+        {
+            <h3 style="color: var(--accent-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px;">
+                Round @round
+            </h3>
+
+            <div class="row">
+                @foreach (var match in matches.Where(m => m.tour == round))
+                {
+                    <div class="col-md-6 mb-4">
+                        <div class="sport-card" style="padding: 0; overflow: hidden; height: 100%;">
+
+                            <div style="background: rgba(255,255,255,0.05); padding: 8px 15px; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                                <span>Match #@match.id</span>
+                                <span>@match.dateMatch.ToString("MMM dd • HH:mm")</span>
+                            </div>
+
+                            <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+
+                                <div style="flex: 1; text-align: left;">
+                                    <div style="font-weight: 800; font-size: 1.1rem; color: white; text-transform: uppercase;">
+                                        @match.homeTeam
+                                    </div>
+                                    <small style="color: var(--text-muted);">Home</small>
+                                </div>
+
+                                <div style="background: black; border: 1px solid #333; padding: 10px 15px; border-radius: 8px; font-family: monospace; font-size: 1.4rem; color: var(--accent-sport); font-weight: bold; margin: 0 15px; white-space: nowrap; box-shadow: 0 0 10px rgba(204,255,0,0.1);">
+                                    @match.homeScore - @match.awayScore
+                                </div>
+
+                                <div style="flex: 1; text-align: right;">
+                                    <div style="font-weight: 800; font-size: 1.1rem; color: white; text-transform: uppercase;">
+                                        @match.awayTeam
+                                    </div>
+                                    <small style="color: var(--text-muted);">Away</small>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private List<BracketMatchDto>? matches;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var jsonString = await Http.GetStringAsync($"api/Match/tournoi/{Id}");
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            matches = JsonSerializer.Deserialize<List<BracketMatchDto>>(jsonString, options);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    public class BracketMatchDto
+    {
+        public int id { get; set; }
+        public DateTime dateMatch { get; set; }
+        public int tour { get; set; }
+        public string homeTeam { get; set; } = "Waiting...";
+        public string awayTeam { get; set; } = "Waiting...";
+        public int homeScore { get; set; }
+        public int awayScore { get; set; }
+    }
+}

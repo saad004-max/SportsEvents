@@ -1,48 +1,69 @@
 ﻿@page "/tournaments"
 @inject HttpClient Http
+@using System.Text.Json
 
-<h3>🏆 Current Tournaments</h3>
+<div class="container" style="margin-top: 40px;">
+    <h1>Current <span style="color: var(--accent-sport);">Tournaments</span></h1>
 
-@if (tournaments == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Sport</th>
-                <th>Location</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var t in tournaments)
-            {
+    @if (tournaments == null)
+    {
+        <p style="color: var(--text-muted);">Loading...</p>
+    }
+    else
+    {
+        <table class="table-sport">
+            <thead>
                 <tr>
-                    <td>@t.nom</td>
-                    <td>@t.sport</td>
-                    <td>@t.lieu</td>
+                    <th>Name</th>
+                    <th>Sport</th>
+                    <th>Location</th>
+                    <th>Dates</th>
+                    <th>Action</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-}
+            </thead>
+            <tbody>
+                @foreach (var t in tournaments)
+                {
+                    <tr>
+                        <td style="font-weight: bold; color: var(--accent-secondary);">@t.nom</td>
+                        <td style="text-transform: uppercase;">@t.sport</td>
+                        <td>@t.lieu</td>
+                        <td style="color: var(--text-muted); font-size: 0.9em;">
+                            @t.dateDebut.ToString("dd MMM") - @t.dateFin.ToString("dd MMM")
+                        </td>
+                        <td>
+                            <a href="/tournaments/@t.id" class="btn-sport" style="text-decoration: none; font-size: 0.8rem;">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
 
 @code {
-    private TournamentDto[]? tournaments;
+    private List<TournamentDto>? tournaments;
 
     protected override async Task OnInitializedAsync()
     {
-        // This calls your API to get the list
-        tournaments = await Http.GetFromJsonAsync<TournamentDto[]>("api/Tournoi");
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var json = await Http.GetStringAsync("api/Tournoi");
+            tournaments = JsonSerializer.Deserialize<List<TournamentDto>>(json, options);
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
     public class TournamentDto
     {
-        public string nom { get; set; }
-        public string sport { get; set; }
-        public string lieu { get; set; }
+        public int id { get; set; }
+        public string nom { get; set; } = "";
+        public string sport { get; set; } = "";
+        public string lieu { get; set; } = "";
+        public DateTime dateDebut { get; set; }
+        public DateTime dateFin { get; set; }
     }
 }

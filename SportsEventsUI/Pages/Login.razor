@@ -5,66 +5,83 @@
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @inject NavigationManager NavManager
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Connexion</h3>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input @bind="loginRequest.Email" class="form-control" placeholder="admin@sportsevents.com" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Mot de passe</label>
-                        <input type="password" @bind="loginRequest.Password" class="form-control" placeholder="Admin123!" />
-                    </div>
-                    <button class="btn btn-primary w-100" @onclick="HandleLogin">Se connecter</button>
+<div class="container" style="max-width: 500px; margin: 60px auto;">
 
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="alert alert-danger mt-3">@errorMessage</div>
-                    }
-                </div>
+    <h1 style="text-align:center; margin-bottom: 20px;">
+        WELCOME <span style="color: var(--accent-sport);">BACK</span>
+    </h1>
+
+    <div class="sport-card">
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; color: var(--text-muted); margin-bottom: 8px;">Email</label>
+            <input @bind="loginRequest.Email" placeholder="admin@sportsevents.com"
+                   style="width: 100%; padding: 12px; background: #2a2a35; border: 1px solid #444; color: white; border-radius: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <label style="display: block; color: var(--text-muted); margin-bottom: 8px;">Password</label>
+            <input type="password" @bind="loginRequest.Password" placeholder="••••••••"
+                   style="width: 100%; padding: 12px; background: #2a2a35; border: 1px solid #444; color: white; border-radius: 8px;" />
+        </div>
+
+        <button class="btn-primary-sport" style="width: 100%;" @onclick="HandleLogin">
+            <span>Sign In</span>
+        </button>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div style="margin-top: 15px; padding: 10px; border-radius: 4px; background: rgba(255,71,87,0.1); border: 1px solid var(--danger); color: var(--danger); text-align: center;">
+                @errorMessage
             </div>
+        }
+
+        <div style="margin-top: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+            <span style="color: var(--text-muted);">New player? </span>
+            <a href="/register" style="color: var(--accent-secondary); text-decoration: none; font-weight: bold;">Create an Account</a>
         </div>
     </div>
 </div>
 
 @code {
     private LoginRequest loginRequest = new LoginRequest();
-    private string? errorMessage; // Added '?' to make it nullable
+    private string? errorMessage;
 
     private async Task HandleLogin()
     {
-        var response = await Http.PostAsJsonAsync("api/Auth/login", loginRequest);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<LoginResult>();
-            if (result != null)
+            var response = await Http.PostAsJsonAsync("api/Auth/login", loginRequest);
+
+            if (response.IsSuccessStatusCode)
             {
-                await LocalStorage.SetItemAsync("authToken", result.Token);
-                ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token);
-                NavManager.NavigateTo("/");
+                var result = await response.Content.ReadFromJsonAsync<LoginResult>();
+                if (result != null)
+                {
+                    await LocalStorage.SetItemAsync("authToken", result.Token);
+                    ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token);
+                    NavManager.NavigateTo("/");
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid email or password.";
             }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Email ou mot de passe incorrect.";
+            errorMessage = "Server connection failed.";
+            Console.WriteLine(ex.Message);
         }
     }
 
     public class LoginRequest
     {
-        public string Email { get; set; } = string.Empty; // Added default
-        public string Password { get; set; } = string.Empty; // Added default
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
     }
 
     public class LoginResult
     {
-        public string Token { get; set; } = string.Empty; // Added default
+        public string Token { get; set; } = "";
     }
 }

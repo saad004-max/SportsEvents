@@ -33,7 +33,7 @@ namespace SportsEventsManagement.Controllers
                 return BadRequest("L'ID du tournoi est requis.");
             }
 
-            // 2. Load the Tournament including its current Teams to check count
+            // 2. Load the Tournament
             var tournoi = await _context.Tournois
                                         .Include(t => t.Equipes)
                                         .FirstOrDefaultAsync(t => t.Id == equipe.TournoiId);
@@ -43,8 +43,9 @@ namespace SportsEventsManagement.Controllers
                 return NotFound("Tournoi introuvable.");
             }
 
-            // 3. Rule: Cannot join a Draft (Brouillon) or Finished tournament
-            if (tournoi.Statut != "Publié")
+            // [CHANGE] 3. Rule: Check Status
+            // We now ALLOW "Brouillon" and "Publié". We only block if it's already started or finished.
+            if (tournoi.Statut == "En Cours" || tournoi.Statut == "Terminé")
             {
                 return BadRequest($"Impossible d'inscrire une équipe. Le tournoi est '{tournoi.Statut}'.");
             }
@@ -66,13 +67,9 @@ namespace SportsEventsManagement.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipe(int id)
         {
-            // 1. Find the team
             var equipe = await _context.Equipes.FindAsync(id);
             if (equipe == null) return NotFound();
 
-            // 2. Find and delete related matches first!
-            // NOTE: If 'EquipeDomicile' is red, check your Match.cs! 
-            // It might be named 'Equipe1', 'HomeTeam', or 'Domicile'.
             var matchAssocies = _context.Matchs
                                 .Where(m => m.EquipeDomicile.Id == id || m.EquipeExterieur.Id == id);
 
@@ -81,16 +78,12 @@ namespace SportsEventsManagement.Controllers
                 _context.Matchs.RemoveRange(matchAssocies);
             }
 
-            // 3. Find and delete related players
-            // This requires that you have added "public DbSet<Joueur> Joueurs { get; set; }" to AppDbContext
             var joueursAssocies = _context.Joueurs.Where(j => j.EquipeId == id);
-
             if (joueursAssocies.Any())
             {
                 _context.Joueurs.RemoveRange(joueursAssocies);
             }
 
-            // 4. NOW you can safely delete the team
             _context.Equipes.Remove(equipe);
             await _context.SaveChangesAsync();
 

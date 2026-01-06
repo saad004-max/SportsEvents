@@ -1,0 +1,137 @@
+﻿@page "/tournaments/{Id:int}"
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="container" style="max-width: 1000px; margin: 40px auto;">
+
+    @if (tournoi == null)
+    {
+        <p style="color: var(--text-muted);">Loading details...</p>
+    }
+    else
+    {
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h1 style="font-size: 3rem; margin: 0;">@tournoi.Nom</h1>
+                <span class="badge-live" style="font-size: 1rem; margin-top: 10px; display: inline-block;">
+                    @tournoi.Statut
+                </span>
+            </div>
+            <a href="/tournaments/@Id/bracket" class="btn-primary-sport" style="text-decoration: none;">
+                <span>👁 View Bracket</span>
+            </a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="sport-card">
+                    <h3 style="color: var(--accent-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Info</h3>
+
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: var(--text-muted); display: block; font-size: 0.85rem;">SPORT</span>
+                        <span style="font-size: 1.1rem; font-weight: bold; text-transform: uppercase;">@tournoi.Sport</span>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: var(--text-muted); display: block; font-size: 0.85rem;">LOCATION</span>
+                        <span style="font-size: 1.1rem;">📍 @tournoi.Lieu</span>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: var(--text-muted); display: block; font-size: 0.85rem;">DATES</span>
+                        <span>@tournoi.DateDebut.ToShortDateString() - @tournoi.DateFin.ToShortDateString()</span>
+                    </div>
+
+                    <div>
+                        <span style="color: var(--text-muted); display: block; font-size: 0.85rem;">TEAMS</span>
+                        <span style="color: var(--accent-sport); font-weight: bold;">
+                            @(teams?.Count ?? 0) / @tournoi.NombreEquipesMax
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="sport-card">
+                    <h3 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 0;">
+                        Participating Teams
+                    </h3>
+
+                    @if (teams == null || teams.Count == 0)
+                    {
+                        <div style="padding: 20px; text-align: center; color: var(--text-muted);">
+                            No teams registered yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="table-sport">
+                            <thead>
+                                <tr>
+                                    <th>Logo</th>
+                                    <th>Name</th>
+                                    <th style="text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var team in teams)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div style="width: 30px; height: 30px; background-color: var(--accent-secondary); border-radius: 50%;"></div>
+                                        </td>
+                                        <td style="font-weight: bold; font-size: 1.1rem;">@team.Nom</td>
+                                        <td style="text-align: right;">
+                                            <button class="btn-sport" style="padding: 5px 15px; font-size: 0.75rem;">Manage</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private TournamentDto? tournoi;
+    private List<TeamDto>? teams;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 1. Fetch Tournament Info
+            tournoi = await Http.GetFromJsonAsync<TournamentDto>($"api/Tournoi/{Id}");
+
+            // 2. Fetch Real Teams (Uncommented!)
+            // We use 'try-catch' here so if the API fails, the page doesn't crash
+            teams = await Http.GetFromJsonAsync<List<TeamDto>>($"api/Tournoi/{Id}/teams");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    public class TournamentDto
+    {
+        public string Nom { get; set; } = "";
+        public string Sport { get; set; } = "";
+        public string Lieu { get; set; } = "";
+        public string Statut { get; set; } = "Open";
+        public DateTime DateDebut { get; set; }
+        public DateTime DateFin { get; set; }
+        public int NombreEquipesMax { get; set; }
+    }
+
+    // [CHANGE] Make sure property names match your Database (usually "Nom" not "NomEquipe")
+    public class TeamDto
+    {
+        public string Nom { get; set; } = "";
+        public string Logo { get; set; } = ""; // Optional if you have logos
+    }
+}

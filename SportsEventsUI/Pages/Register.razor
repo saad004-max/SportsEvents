@@ -1,0 +1,91 @@
+﻿@page "/register"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<div class="container" style="max-width: 500px; margin: 60px auto;">
+
+    <h1 style="text-align:center; margin-bottom: 20px;">
+        JOIN <span style="color: var(--accent-sport);">THE GAME</span>
+    </h1>
+
+    <div class="sport-card">
+        <EditForm Model="@registerRequest" OnValidSubmit="HandleRegistration">
+            <DataAnnotationsValidator />
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: var(--text-muted); margin-bottom: 8px;">Email Address</label>
+                <InputText @bind-Value="registerRequest.Email" placeholder="you@example.com"
+                           style="width: 100%; padding: 12px; background: #2a2a35; border: 1px solid #444; color: white; border-radius: 8px;" />
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: var(--text-muted); margin-bottom: 8px;">Password</label>
+                <InputText type="password" @bind-Value="registerRequest.Password" placeholder="••••••••"
+                           style="width: 100%; padding: 12px; background: #2a2a35; border: 1px solid #444; color: white; border-radius: 8px;" />
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <label style="display: block; color: var(--text-muted); margin-bottom: 8px;">I am a...</label>
+                <InputSelect @bind-Value="registerRequest.Role"
+                             style="width: 100%; padding: 12px; background: #2a2a35; border: 1px solid #444; color: white; border-radius: 8px;">
+                    <option value="User">Fan / Viewer</option>
+                    <option value="Organizer">Tournament Organizer</option>
+                    <option value="Admin">Administrator</option>
+                </InputSelect>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" style="background: rgba(255,71,87,0.1); border: 1px solid var(--danger); color: var(--danger);">
+                    @errorMessage
+                </div>
+            }
+
+            <button type="submit" class="btn-primary-sport" style="width: 100%; text-align: center;">
+                <span>Create Account</span>
+            </button>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <span style="color: var(--text-muted);">Already have an account? </span>
+                <a href="/login" style="color: var(--accent-sport); text-decoration: none; font-weight: bold;">Login here</a>
+            </div>
+
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerRequest = new RegisterRequest();
+    private string? errorMessage;
+
+    private async Task HandleRegistration()
+    {
+        try
+        {
+            // IMPORTANT: Make sure your Backend API accepts "Role" in the register DTO
+            var response = await Http.PostAsJsonAsync("api/Auth/register", registerRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // If successful, go to login
+                NavManager.NavigateTo("/login");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Registration failed: {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    public class RegisterRequest
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string Role { get; set; } = "User"; // Default Role
+    }
+}

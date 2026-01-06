@@ -1,7 +1,73 @@
 ﻿@page "/"
+@inject HttpClient Http
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Authorization
 
-<PageTitle>Home</PageTitle>
+<div style="background: linear-gradient(135deg, #121212 0%, #1e1e24 100%); padding: 80px 20px; text-align: center; border-bottom: 2px solid var(--accent-sport);">
+    <h1 style="font-size: 3.5rem; border: none; margin-bottom: 10px;">
+        SPORT<span style="color: var(--accent-sport);">EVENTS</span>
+    </h1>
+    <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 30px auto;">
+        The ultimate platform for managing tournaments, tracking teams, and visualizing brackets.
+    </p>
 
-<h1>Hello, world!</h1>
+    <AuthorizeView>
+        <Authorized>
+            <a href="/add-tournament" class="btn-primary-sport" style="text-decoration: none;">
+                <span>+ Start New Tournament</span>
+            </a>
+        </Authorized>
 
-Welcome to your new app.
+        <NotAuthorized>
+            <div style="display: flex; justify-content: center; gap: 20px;">
+                <a href="/login" class="btn-sport" style="text-decoration: none;">
+                    Login
+                </a>
+                <a href="/register" class="btn-primary-sport" style="text-decoration: none;">
+                    <span>Sign Up Free</span>
+                </a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+<div class="container" style="max-width: 1000px; margin: 50px auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+
+    <div class="sport-card" style="text-align: center;">
+        <h2 style="font-size: 3rem; color: var(--accent-sport); margin: 0;">@tournamentCount</h2>
+        <p style="color: var(--text-muted);">Active Tournaments</p>
+    </div>
+
+    <div class="sport-card" style="text-align: center;">
+        <h2 style="font-size: 3rem; color: var(--accent-secondary); margin: 0;">@matchCount</h2>
+        <p style="color: var(--text-muted);">Total Matches</p>
+    </div>
+
+    <div class="sport-card" style="text-align: center;">
+        <h2 style="font-size: 3rem; color: #fff; margin: 0;">--</h2>
+        <p style="color: var(--text-muted);">Registered Teams</p>
+    </div>
+</div>
+
+@code {
+    private int tournamentCount = 0;
+    private int matchCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 1. Get Tournaments Count
+            var tournois = await Http.GetFromJsonAsync<List<object>>("api/Tournoi");
+            if (tournois != null) tournamentCount = tournois.Count;
+
+            // 2. Get Matches Count
+            var matches = await Http.GetFromJsonAsync<List<object>>("api/Match");
+            if (matches != null) matchCount = matches.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard Error: {ex.Message}");
+        }
+    }
+}

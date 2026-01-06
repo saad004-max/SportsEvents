@@ -23,6 +23,23 @@ namespace SportsEventsManagement.Controllers
             return await _context.Tournois.Include(t => t.Equipes).ToListAsync();
         }
 
+        // [NEW] GET: api/Tournoi/5
+        // This is required for the TournamentDetails page to work!
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Tournoi>> GetTournoi(int id)
+        {
+            var tournoi = await _context.Tournois
+                .Include(t => t.Equipes) // Important: Load the teams too!
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (tournoi == null)
+            {
+                return NotFound();
+            }
+
+            return tournoi;
+        }
+
         // POST: api/Tournoi
         [HttpPost]
         public async Task<ActionResult<Tournoi>> CreateTournoi(Tournoi tournoi)
@@ -60,7 +77,7 @@ namespace SportsEventsManagement.Controllers
             return Ok(new { message = "Tournoi publié avec succès.", statut = tournoi.Statut });
         }
 
-        // POST: Generate Matches
+        // POST: Generate Bracket (Round 1)
         [HttpPost("{id}/generer")]
         public async Task<IActionResult> GenererMatchs(int id)
         {
@@ -71,37 +88,37 @@ namespace SportsEventsManagement.Controllers
 
             if (tournoi == null) return NotFound("Tournoi introuvable.");
 
-            if (tournoi.Statut == "Brouillon")
-                return BadRequest("Impossible de générer les matchs. Le tournoi est encore en brouillon.");
+            // Validations
+            if (tournoi.Statut != "Publié") return BadRequest("Le tournoi doit être 'Publié' pour générer le bracket.");
+            if (tournoi.Matchs.Any()) return BadRequest("Le bracket existe déjà.");
+            if (tournoi.Equipes.Count < 2) return BadRequest("Il faut au moins 2 équipes.");
 
-            if (tournoi.Matchs.Any())
-                return BadRequest("Les matchs ont déjà été générés pour ce tournoi.");
+            // 1. Shuffle Teams (Random Order)
+            var random = new Random();
+            var equipes = tournoi.Equipes.OrderBy(x => random.Next()).ToList();
 
-            if (tournoi.Equipes.Count < 2)
-                return BadRequest("Il faut au moins 2 équipes pour générer des matchs.");
-
-            var equipes = tournoi.Equipes.ToList();
             var matchsGeneres = new List<Match>();
             DateTime dateMatch = tournoi.DateDebut;
 
-            for (int i = 0; i < equipes.Count; i++)
+            // 2. Create Pairs (1 vs 2, 3 vs 4, etc.)
+            for (int i = 0; i < equipes.Count; i += 2)
             {
-                for (int j = i + 1; j < equipes.Count; j++)
+                // Ensure we have a pair (handle odd numbers by skipping the last one for now)
+                if (i + 1 < equipes.Count)
                 {
-                    // FIX: Using CORRECT names from your new Match.cs
                     var match = new Match
                     {
                         TournoiId = tournoi.Id,
-                        EquipeDomicileId = equipes[i].Id,   // FIXED
-                        EquipeExterieurId = equipes[j].Id,  // FIXED
-                        DateMatch = dateMatch,              // FIXED
+                        EquipeDomicileId = equipes[i].Id,
+                        EquipeExterieurId = equipes[i + 1].Id,
+                        DateMatch = dateMatch,
                         Lieu = tournoi.Lieu,
-                        ScoreDomicile = 0,                  // FIXED
-                        ScoreExterieur = 0                  // FIXED
+                        ScoreDomicile = 0,
+                        ScoreExterieur = 0,
+                        Tour = 1 // This marks it as "Round 1"
                     };
-
                     matchsGeneres.Add(match);
-                    dateMatch = dateMatch.AddHours(2);
+                    dateMatch = dateMatch.AddHours(2); // Stagger matches by 2 hours
                 }
             }
 
@@ -109,7 +126,37 @@ namespace SportsEventsManagement.Controllers
             tournoi.Statut = "En Cours";
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = $"{matchsGeneres.Count} matchs générés.", matchs = matchsGeneres });
+            return Ok(new { message = "Bracket généré (Tour 1)", matchs = matchsGeneres });
+        }
+        // GET: api/Tournoi/5/teams
+        [HttpGet("{id}/teams")]
+        public async Task<ActionResult<IEnumerable<Equipe>>> GetTeamsByTournament(int id)
+        {
+            // OPTION A: If you have a direct relationship (Equipe has a TournoiId)
+            /*
+            var teams = await _context.Equipes
+                .Where(e => e.TournoiId == id)
+                .ToListAsync();
+            */
+
+            // OPTION B: If you use a Join Table (TournoiEquipe) - MORE COMMON
+            // This assumes you have a Many-to-Many relationship
+            /*
+            var teams = await _context.TournoiEquipes
+                .Where(te => te.TournoiId == id)
+                .Select(te => te.Equipe)
+                .ToListAsync();
+            */
+
+            // OPTION C: If you don't have relationships set up yet and just want all teams (Temporary)
+            var teams = await _context.Equipes.ToListAsync();
+
+            if (teams == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(teams);
         }
     }
 }

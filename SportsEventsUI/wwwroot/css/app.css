@@ -113,3 +113,183 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* --- SPORTIF MODERN THEME for app.css --- */
+:root {
+    /* Color Palette */
+    --bg-dark: #121212; /* Deepest Black */
+    --bg-card: #1e1e24; /* Dark Grey Card */
+    --text-main: #ffffff; /* Bright White */
+    --text-muted: #a0a0a0; /* Muted Grey */
+    --accent-sport: #ccff00; /* Neon Lime */
+    --accent-secondary: #00d4ff; /* Electric Blue */
+    --danger: #ff4757; /* Red */
+    /* Spacing & Borders */
+    --radius-std: 12px;
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --transition-speed: 0.3s;
+}
+
+html, body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Typography */
+h1, h2, h3 {
+    text-transform: uppercase;
+    font-weight: 800;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+h1 {
+    border-left: 5px solid var(--accent-sport);
+    padding-left: 15px;
+    font-size: 2.5rem;
+}
+
+/* --- COMPONENTS --- */
+
+/* 1. Sport Card (Container for matches/content) */
+.sport-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-std);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+    .sport-card:hover {
+        border-color: var(--accent-sport);
+        transform: translateY(-3px);
+    }
+
+/* 2. Neon Buttons */
+.btn-sport {
+    background: transparent;
+    border: 2px solid var(--accent-sport);
+    color: var(--accent-sport);
+    padding: 8px 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+    .btn-sport:hover {
+        background: var(--accent-sport);
+        color: black;
+        box-shadow: 0 0 15px var(--accent-sport);
+    }
+
+.btn-primary-sport {
+    background: linear-gradient(45deg, var(--accent-sport), #aaff00);
+    color: black;
+    border: none;
+    padding: 12px 30px;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    transform: skew(-10deg); /* Aggressive sport angle */
+    display: inline-block;
+}
+
+    .btn-primary-sport span {
+        display: inline-block;
+        transform: skew(10deg); /* Fix text angle */
+    }
+
+/* 3. Modern Table */
+.table-sport {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+    .table-sport th {
+        text-align: left;
+        color: var(--text-muted);
+        padding: 10px 20px;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+
+    .table-sport tbody tr {
+        background: var(--bg-card);
+    }
+
+    .table-sport td {
+        padding: 15px 20px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+        .table-sport td:first-child {
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+
+        .table-sport td:last-child {
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+/* 4. Badges */
+.badge-live {
+    background-color: rgba(255, 71, 87, 0.2);
+    color: var(--danger);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 1px solid var(--danger);
+}
+/* --- SIDEBAR OVERRIDES --- */
+.sidebar {
+    background-image: none !important;
+    background-color: var(--bg-card) !important;
+    border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+    .sidebar .nav-item .nav-link {
+        color: var(--text-muted) !important;
+        font-weight: 600;
+        border-radius: 8px;
+        margin: 5px 10px;
+        transition: all 0.2s;
+    }
+
+        .sidebar .nav-item .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main) !important;
+        }
+
+        .sidebar .nav-item .nav-link.active {
+            background-color: transparent !important;
+            color: var(--accent-sport) !important;
+            border: 1px solid var(--accent-sport);
+            box-shadow: 0 0 10px rgba(204, 255, 0, 0.1);
+        }
+/* --- FIX TOP ROW THEME --- */
+.top-row {
+    background-color: var(--bg-dark) !important; /* Force Black */
+    color: white;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+    /* Fix links in the top row */
+    .top-row a {
+        color: var(--text-muted);
+    }
+
+        .top-row a:hover {
+            color: var(--accent-sport);
+        }

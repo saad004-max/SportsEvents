@@ -1,6 +1,8 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">SportsEventsUI</a>
+        <a class="navbar-brand" href="">
+            SPORT<span style="color: #ccff00; font-style:italic;">EVENTS</span>
+        </a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -9,36 +11,55 @@
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="nav flex-column">
+
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="tournaments">
-                <span aria-hidden="true" style="margin-right: 10px;">🏆</span> Tournaments
+                <span style="margin-right: 12px;">🏆</span> Tournaments
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="add-tournament">
-                <span aria-hidden="true" style="margin-right: 10px;">➕</span> New Tournament
-            </NavLink>
-        </div>
+
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="matches">
-                <span aria-hidden="true" style="margin-right: 10px;">⚽</span> Matches
+                <span style="margin-right: 12px;">⚽</span> Matches
             </NavLink>
         </div>
+
+        <AuthorizeView Roles="Admin, Organizer">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="add-tournament">
+                        <span style="margin-right: 12px;">➕</span> New Tournament
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <div class="nav-item px-3">
+            <hr style="border-color: rgba(255,255,255,0.2);" />
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <div class="nav-link" style="color: var(--accent-sport);">
+                        👤 @context.User.Identity?.Name
+                    </div>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="logout" style="cursor: pointer;">
+                        <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+                    </NavLink>
+                </div>
+            </Authorized>
+            
+        </AuthorizeView>
+
     </nav>
 </div>
 

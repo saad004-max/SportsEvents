@@ -8,7 +8,8 @@ namespace SportsEventsManagement.Models
         public DateTime DateMatch { get; set; }
         public string Lieu { get; set; } = string.Empty;
 
-        // --- These are the properties your Controller is looking for ---
+        // [NEW] This property tracks the Round (1 = Round of 16, 2 = Quarter-final, etc.)
+        public int Tour { get; set; } = 1;
 
         // Home Team
         public int? EquipeDomicileId { get; set; }

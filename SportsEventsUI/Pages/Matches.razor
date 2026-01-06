@@ -1,78 +1,100 @@
 ﻿@page "/matches"
 @inject HttpClient Http
+@using System.Text.Json
 
-<h3>⚽ Match Results</h3>
+<div class="container" style="max-width: 900px; margin: 40px auto; padding: 20px;">
 
-@if (matches == null)
-{
-    <p><em>Loading matches...</em></p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Tournament</th>
-                <th class="text-end">Home Team</th>
-                <th class="text-center">Score</th>
-                <th class="text-start">Away Team</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var m in matches)
-            {
-                <tr>
-                    <td>@m.date.ToShortDateString()</td>
-                    <td>@m.tournoi?.nom</td>
-                    <td class="text-end fw-bold">@m.equipe1?.nom</td>
+    <h1>Match <span style="color: var(--accent-sport);">Schedule</span></h1>
 
-                    <td class="text-center bg-light border">
-                        @m.scoreEquipe1 - @m.scoreEquipe2
-                    </td>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
 
-                    <td class="text-start fw-bold">@m.equipe2?.nom</td>
+    @if (matches == null && string.IsNullOrEmpty(errorMessage))
+    {
+        <p style="color: var(--text-muted);">Loading matches...</p>
+    }
+    else if (matches != null && matches.Count == 0)
+    {
+        <p style="color: var(--text-muted);">No matches found.</p>
+    }
+    else if (matches != null)
+    {
+        @foreach (var match in matches)
+        {
+            <div class="sport-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span class="badge-live">Match #@match.id</span>
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">@match.tournoiName • @match.lieu</span>
+                </div>
 
-                    <td>
-                        @if (m.statut == "Termine")
-                        {
-                            <span class="badge bg-success">Finished</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning text-dark">@m.statut</span>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="text-align: center; flex: 1;">
+                        <h3 style="margin: 0;">@match.homeTeam</h3>
+                        <small style="color: var(--text-muted);">Home</small>
+                    </div>
+
+                    <div style="background: #000; padding: 15px 30px; border-radius: 8px; font-family: monospace; font-size: 2rem; color: var(--accent-sport); border: 1px solid #333;">
+                        @match.scoreDomicile - @match.scoreExterieur
+                    </div>
+
+                    <div style="text-align: center; flex: 1;">
+                        <h3 style="margin: 0;">@match.awayTeam</h3>
+                        <small style="color: var(--text-muted);">Away</small>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
 
 @code {
-    private MatchDto[]? matches;
+    private List<MatchListDto>? matches;
+    private string? errorMessage; // Add this to see errors on screen
 
     protected override async Task OnInitializedAsync()
     {
-        matches = await Http.GetFromJsonAsync<MatchDto[]>("api/Match");
+        try
+        {
+            // 1. Fetch the data
+            var response = await Http.GetAsync("api/Match");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonString = await response.Content.ReadAsStringAsync();
+
+                // 2. Check if data is not empty before deserializing
+                if (!string.IsNullOrEmpty(jsonString))
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    matches = JsonSerializer.Deserialize<List<MatchListDto>>(jsonString, options);
+                }
+            }
+            else
+            {
+                // Log the specific error code (e.g., 404, 500)
+                errorMessage = $"Server Error: {response.StatusCode}";
+                Console.WriteLine($"API Failed: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // This prevents the "Yellow Bar" crash
+            errorMessage = $"Critical Error: {ex.Message}";
+            Console.WriteLine($"Exception: {ex}");
+        }
     }
 
-    // This class matches the JSON structure from your Backend
-    public class MatchDto
+    public class MatchListDto
     {
         public int id { get; set; }
-        public DateTime date { get; set; }
-        public int scoreEquipe1 { get; set; }
-        public int scoreEquipe2 { get; set; }
-        public string statut { get; set; }
-
-        // Nested Objects (so we can get the names)
-        public TournoiDto? tournoi { get; set; }
-        public EquipeDto? equipe1 { get; set; }
-        public EquipeDto? equipe2 { get; set; }
+        public DateTime dateMatch { get; set; }
+        public string lieu { get; set; } = "";
+        public string tournoiName { get; set; } = "";
+        public string homeTeam { get; set; } = "Unknown";
+        public string awayTeam { get; set; } = "Unknown";
+        public int scoreDomicile { get; set; }
+        public int scoreExterieur { get; set; }
     }
-
-    public class TournoiDto { public string nom { get; set; } }
-    public class EquipeDto { public string nom { get; set; } }
 }

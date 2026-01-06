@@ -1,12 +1,36 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Nav
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-row px-4" style="background-color: var(--bg-dark); border-bottom: 1px solid rgba(255,255,255,0.1);">
+
+            <AuthorizeView>
+                <Authorized>
+                    <span style="color: var(--text-muted); margin-right: 15px;">
+                        Hello, <span style="color: var(--accent-sport); font-weight:bold;">@context.User.Identity?.Name</span>
+                    </span>
+
+                    <a href="logout" class="btn-sport" style="text-decoration: none; font-size: 0.8rem; padding: 6px 15px;">
+                        Logout
+                    </a>
+                </Authorized>
+
+                <NotAuthorized>
+                    <a href="login" class="btn-sport" style="text-decoration: none; font-size: 0.8rem; padding: 6px 15px; margin-right: 10px;">
+                        Login
+                    </a>
+                    <a href="register" class="btn-primary-sport" style="text-decoration: none; font-size: 0.8rem; padding: 8px 20px; transform: none;">
+                        <span>Register</span>
+                    </a>
+                </NotAuthorized>
+            </AuthorizeView>
+
+            <a href="https://docs.microsoft.com/aspnet/" target="_blank" style="margin-left: 20px; color: var(--text-muted);">About</a>
         </div>
 
         <article class="content px-4">

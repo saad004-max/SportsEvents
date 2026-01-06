@@ -16,9 +16,22 @@ namespace SportsEventsManagement.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(Utilisateur utilisateur)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            var user = await _authService.Register(utilisateur);
+            var newUser = new Utilisateur
+            {
+                Email = request.Email,
+
+                // Map English request to French model properties
+                MotDePasse = request.Password,
+                Nom = "New User",   // Default value (since RegisterRequest doesn't have Name yet)
+                Telephone = "",     // Default value
+
+                Role = request.Role
+            };
+
+            var user = await _authService.Register(newUser);
+
             if (user == null)
             {
                 return BadRequest("Email already exists.");
@@ -29,7 +42,6 @@ namespace SportsEventsManagement.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            // [CHANGE] Call the service which now returns a Token (string)
             var token = await _authService.Login(request.Email, request.Password);
 
             if (token == null)
@@ -37,15 +49,23 @@ namespace SportsEventsManagement.Controllers
                 return Unauthorized("Invalid email or password.");
             }
 
-            // [CHANGE] Return the token inside a JSON object
             return Ok(new { Token = token });
         }
 
-        // [NEW] Helper class to read the JSON body sent by the frontend
+        // --- DTO CLASSES ---
+
         public class LoginRequest
         {
             public string Email { get; set; } = string.Empty;
             public string Password { get; set; } = string.Empty;
+        }
+
+        // [NEW] Helper class for Registration
+        public class RegisterRequest
+        {
+            public string Email { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+            public string Role { get; set; } = "User"; // Default to "User" if not sent
         }
     }
 }
