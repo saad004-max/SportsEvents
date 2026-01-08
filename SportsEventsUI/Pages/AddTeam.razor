@@ -1,0 +1,64 @@
+﻿@page "/tournaments/{Id:int}/add-team"
+@inject HttpClient Http
+@inject NavigationManager Nav
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin, Organizer")]
+
+<div class="container" style="max-width: 500px; margin: 60px auto;">
+
+    <div class="sport-card">
+        <h2 style="text-align: center; margin-bottom: 20px;">ADD <span style="color: var(--accent-sport);">TEAM</span></h2>
+
+        <div class="mb-3">
+            <label class="form-label" style="color: var(--text-muted);">Team Name</label>
+            <input type="text" @bind="newTeam.Nom" placeholder="e.g. Real Madrid"
+                   style="width: 100%; padding: 10px; background: #000; color: white; border: 1px solid #333; border-radius: 5px;" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" style="color: var(--text-muted);">Logo URL (Image Link)</label>
+            <input type="text" @bind="newTeam.Logo" placeholder="https://example.com/logo.png"
+                   style="width: 100%; padding: 10px; background: #000; color: white; border: 1px solid #333; border-radius: 5px;" />
+            <small style="color: var(--text-muted); font-size: 0.7rem;">Right-click an image on Google and select "Copy Image Address"</small>
+        </div>
+
+        @if (!string.IsNullOrEmpty(newTeam.Logo))
+        {
+            <div style="text-align: center; margin: 10px 0;">
+                <img src="@newTeam.Logo" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-sport);" />
+            </div>
+        }
+
+        <button class="btn-primary-sport" style="width: 100%; margin-top: 20px;" @onclick="SaveTeam">
+            Save Team
+        </button>
+
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/tournaments/@Id" style="color: var(--text-muted); text-decoration: none;">Cancel</a>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private CreateTeamDto newTeam = new CreateTeamDto();
+
+    private async Task SaveTeam()
+    {
+        newTeam.TournoiId = Id;
+        var response = await Http.PostAsJsonAsync("api/Equipe", newTeam);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Nav.NavigateTo($"/tournaments/{Id}");
+        }
+    }
+
+    public class CreateTeamDto
+    {
+        public string Nom { get; set; } = "";
+        public string Logo { get; set; } = "";
+        public int TournoiId { get; set; }
+    }
+}

@@ -10,13 +10,17 @@
         <h1>Tournament <span style="color: var(--accent-sport);">Bracket</span></h1>
 
         <div style="display:flex; gap: 15px; align-items: center;">
-            <AuthorizeView Roles="Admin, Organizer">
-                <Authorized>
-                    <button class="btn-primary-sport" @onclick="GenerateNextRound">
-                        Generate Next Round ➔
-                    </button>
-                </Authorized>
-            </AuthorizeView>
+
+            @if (matches != null && matches.Count > 0)
+            {
+                <AuthorizeView Roles="Admin, Organizer">
+                    <Authorized>
+                        <button class="btn-primary-sport" @onclick="GenerateNextRound">
+                            Generate Next Round ➔
+                        </button>
+                    </Authorized>
+                </AuthorizeView>
+            }
 
             <a href="/tournaments/@Id" class="btn-sport" style="text-decoration:none; font-size:0.9rem;">
                 ← Back to Info
@@ -36,13 +40,28 @@
             <p style="color: var(--text-muted); margin-top: 10px;">Loading fixtures...</p>
         </div>
     }
+    // --- [CRITICAL FIX] THIS SHOWS THE START BUTTON ---
     else if (matches.Count == 0)
     {
-        <div class="sport-card" style="text-align: center; padding: 40px;">
-            <h3 style="color: var(--text-muted);">No matches scheduled yet.</h3>
-            <p style="color: var(--text-muted);">The bracket will appear here once the tournament starts.</p>
+        <div class="sport-card" style="text-align: center; padding: 50px;">
+            <h3 style="color: white; margin-bottom: 10px;">Ready to Start?</h3>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">
+                The tournament is published but the matches haven't been generated yet.
+            </p>
+
+            <AuthorizeView Roles="Admin, Organizer">
+                <Authorized>
+                    <button class="btn-primary-sport" style="padding: 15px 30px; font-size: 1.2rem;" @onclick="GenerateFirstRound">
+                        🎲 Generate Round 1 Draw
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <p style="color: var(--text-muted);">Waiting for Admin to start the tournament.</p>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
     }
+    // ----------------------------------------
     else
     {
         var rounds = matches.Select(m => m.tour).Distinct().OrderBy(t => t);
@@ -65,7 +84,6 @@
                             </div>
 
                             <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
-
                                 <div style="flex: 1; text-align: left;">
                                     <div style="font-weight: 800; font-size: 1.1rem; color: white; text-transform: uppercase;">
                                         @match.homeTeam
@@ -73,7 +91,7 @@
                                     <small style="color: var(--text-muted);">Home</small>
                                 </div>
 
-                                <div style="background: black; border: 1px solid #333; padding: 10px 15px; border-radius: 8px; font-family: monospace; font-size: 1.4rem; color: var(--accent-sport); font-weight: bold; margin: 0 15px; white-space: nowrap; box-shadow: 0 0 10px rgba(204,255,0,0.1);">
+                                <div style="background: black; border: 1px solid #333; padding: 10px 15px; border-radius: 8px; font-family: monospace; font-size: 1.4rem; color: var(--accent-sport); font-weight: bold; margin: 0 15px; white-space: nowrap;">
                                     @match.homeScore - @match.awayScore
                                 </div>
 
@@ -84,7 +102,6 @@
                                     <small style="color: var(--text-muted);">Away</small>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 }
@@ -117,28 +134,37 @@
         }
     }
 
-    // [NEW] Logic to generate the next round
+    // [NEW] Trigger Round 1 Generation
+    private async Task GenerateFirstRound()
+    {
+        errorMessage = null;
+        // Calls the 'generer' endpoint (Round 1)
+        var response = await Http.PostAsync($"api/Tournoi/{Id}/generer", null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadMatches();
+        }
+        else
+        {
+            errorMessage = await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    // Trigger Next Rounds (Round 2, 3...)
     private async Task GenerateNextRound()
     {
-        errorMessage = null; // Clear old errors
-        try
-        {
-            var response = await Http.PostAsync($"api/Tournoi/{Id}/next-round", null);
+        errorMessage = null;
+        // Calls the 'next-round' endpoint (Round 2+)
+        var response = await Http.PostAsync($"api/Tournoi/{Id}/next-round", null);
 
-            if (response.IsSuccessStatusCode)
-            {
-                // Refresh the list to show the new matches immediately
-                await LoadMatches();
-            }
-            else
-            {
-                // Show the error message (e.g. "Match #5 is a draw")
-                errorMessage = await response.Content.ReadAsStringAsync();
-            }
-        }
-        catch (Exception ex)
+        if (response.IsSuccessStatusCode)
         {
-            errorMessage = $"Connection Error: {ex.Message}";
+            await LoadMatches();
+        }
+        else
+        {
+            errorMessage = await response.Content.ReadAsStringAsync();
         }
     }
 

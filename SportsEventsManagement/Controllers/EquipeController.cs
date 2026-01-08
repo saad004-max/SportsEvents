@@ -16,89 +16,56 @@ namespace SportsEventsManagement.Controllers
             _context = context;
         }
 
-        // GET: api/Equipe
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Equipe>>> GetEquipes()
-        {
-            return await _context.Equipes.ToListAsync();
-        }
-
-        // POST: api/Equipe
+        // POST: api/Equipe (Used by AddTeam.razor)
         [HttpPost]
-        public async Task<ActionResult<Equipe>> CreateEquipe(Equipe equipe)
+        public async Task<ActionResult<Equipe>> CreateEquipe(EquipeDto dto)
         {
-            // 1. Check if a Tournament ID is provided
-            if (equipe.TournoiId == null)
+            // 1. Find Tournament
+            var tournoi = await _context.Tournois.Include(t => t.Equipes).FirstOrDefaultAsync(t => t.Id == dto.TournoiId);
+            if (tournoi == null) return NotFound("Tournament not found");
+
+            // 2. Validate: Cannot add if tournament is full or already started
+            if (tournoi.Statut != "Brouillon") return BadRequest("Cannot add teams to a started tournament.");
+            if (tournoi.Equipes.Count >= tournoi.NombreEquipesMax) return BadRequest("Tournament is full.");
+
+            // 3. Save Team
+            var equipe = new Equipe
             {
-                return BadRequest("L'ID du tournoi est requis.");
-            }
+                Nom = dto.Nom,
+                Logo = dto.Logo,
+                TournoiId = dto.TournoiId
+            };
 
-            // 2. Load the Tournament
-            var tournoi = await _context.Tournois
-                                        .Include(t => t.Equipes)
-                                        .FirstOrDefaultAsync(t => t.Id == equipe.TournoiId);
-
-            if (tournoi == null)
-            {
-                return NotFound("Tournoi introuvable.");
-            }
-
-            // [CHANGE] 3. Rule: Check Status
-            // We now ALLOW "Brouillon" and "Publié". We only block if it's already started or finished.
-            if (tournoi.Statut == "En Cours" || tournoi.Statut == "Terminé")
-            {
-                return BadRequest($"Impossible d'inscrire une équipe. Le tournoi est '{tournoi.Statut}'.");
-            }
-
-            // 4. Rule: Check Available Places
-            if (tournoi.Equipes.Count >= tournoi.NombreEquipesMax)
-            {
-                return BadRequest("Le tournoi est complet. Plus de places disponibles.");
-            }
-
-            // 5. Save the Team
             _context.Equipes.Add(equipe);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetEquipes), new { id = equipe.Id }, equipe);
+            return Ok(equipe);
         }
 
-        // DELETE: api/Equipe/5
+        // [NEW] DELETE: api/Equipe/5 (Used by TournamentDetails)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipe(int id)
         {
             var equipe = await _context.Equipes.FindAsync(id);
             if (equipe == null) return NotFound();
 
-            var matchAssocies = _context.Matchs
-                                .Where(m => m.EquipeDomicile.Id == id || m.EquipeExterieur.Id == id);
-
-            if (matchAssocies.Any())
+            // Check if matches started
+            var hasMatches = await _context.Matchs.AnyAsync(m => m.EquipeDomicileId == id || m.EquipeExterieurId == id);
+            if (hasMatches)
             {
-                _context.Matchs.RemoveRange(matchAssocies);
-            }
-
-            var joueursAssocies = _context.Joueurs.Where(j => j.EquipeId == id);
-            if (joueursAssocies.Any())
-            {
-                _context.Joueurs.RemoveRange(joueursAssocies);
+                return BadRequest("Cannot delete this team because they are already in a match.");
             }
 
             _context.Equipes.Remove(equipe);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
-        // GET: api/Tournoi/5/teams
-        [HttpGet("{id}/teams")]
-        public async Task<ActionResult<IEnumerable<Equipe>>> GetTeamsByTournament(int id)
-        {
-            // This explicitly filters teams that belong to the Tournament ID provided in the URL
-            var teams = await _context.Equipes
-                                      .Where(e => e.TournoiId == id)
-                                      .ToListAsync();
 
-            return Ok(teams);
+        public class EquipeDto
+        {
+            public string Nom { get; set; } = "";
+            public string Logo { get; set; } = "";
+            public int TournoiId { get; set; }
         }
     }
 }
