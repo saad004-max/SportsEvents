@@ -23,13 +23,12 @@ namespace SportsEventsManagement.Controllers
             return await _context.Tournois.Include(t => t.Equipes).ToListAsync();
         }
 
-        // [NEW] GET: api/Tournoi/5
-        // This is required for the TournamentDetails page to work!
+        // GET: api/Tournoi/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Tournoi>> GetTournoi(int id)
         {
             var tournoi = await _context.Tournois
-                .Include(t => t.Equipes) // Important: Load the teams too!
+                .Include(t => t.Equipes)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (tournoi == null)
@@ -61,7 +60,7 @@ namespace SportsEventsManagement.Controllers
             return NoContent();
         }
 
-        // PATCH: Publish (Brouillon -> Publié)
+        // PATCH: Publish
         [HttpPatch("{id}/publier")]
         public async Task<IActionResult> PublierTournoi(int id)
         {
@@ -77,14 +76,14 @@ namespace SportsEventsManagement.Controllers
             return Ok(new { message = "Tournoi publié avec succès.", statut = tournoi.Statut });
         }
 
-        // POST: Generate Bracket (Round 1)
+        // POST: Generate Bracket (First Round)
         [HttpPost("{id}/generer")]
         public async Task<IActionResult> GenererMatchs(int id)
         {
             var tournoi = await _context.Tournois
-                                        .Include(t => t.Equipes)
-                                        .Include(t => t.Matchs)
-                                        .FirstOrDefaultAsync(t => t.Id == id);
+                                    .Include(t => t.Equipes)
+                                    .Include(t => t.Matchs)
+                                    .FirstOrDefaultAsync(t => t.Id == id);
 
             if (tournoi == null) return NotFound("Tournoi introuvable.");
 
@@ -93,17 +92,16 @@ namespace SportsEventsManagement.Controllers
             if (tournoi.Matchs.Any()) return BadRequest("Le bracket existe déjà.");
             if (tournoi.Equipes.Count < 2) return BadRequest("Il faut au moins 2 équipes.");
 
-            // 1. Shuffle Teams (Random Order)
+            // 1. Shuffle Teams
             var random = new Random();
             var equipes = tournoi.Equipes.OrderBy(x => random.Next()).ToList();
 
             var matchsGeneres = new List<Match>();
             DateTime dateMatch = tournoi.DateDebut;
 
-            // 2. Create Pairs (1 vs 2, 3 vs 4, etc.)
+            // 2. Create Pairs
             for (int i = 0; i < equipes.Count; i += 2)
             {
-                // Ensure we have a pair (handle odd numbers by skipping the last one for now)
                 if (i + 1 < equipes.Count)
                 {
                     var match = new Match
@@ -115,10 +113,10 @@ namespace SportsEventsManagement.Controllers
                         Lieu = tournoi.Lieu,
                         ScoreDomicile = 0,
                         ScoreExterieur = 0,
-                        Tour = 1 // This marks it as "Round 1"
+                        Tour = 1
                     };
                     matchsGeneres.Add(match);
-                    dateMatch = dateMatch.AddHours(2); // Stagger matches by 2 hours
+                    dateMatch = dateMatch.AddHours(2);
                 }
             }
 
@@ -128,35 +126,102 @@ namespace SportsEventsManagement.Controllers
 
             return Ok(new { message = "Bracket généré (Tour 1)", matchs = matchsGeneres });
         }
-        // GET: api/Tournoi/5/teams
+
+        // GET: Teams for a specific tournament
         [HttpGet("{id}/teams")]
         public async Task<ActionResult<IEnumerable<Equipe>>> GetTeamsByTournament(int id)
         {
-            // OPTION A: If you have a direct relationship (Equipe has a TournoiId)
-            /*
             var teams = await _context.Equipes
-                .Where(e => e.TournoiId == id)
-                .ToListAsync();
-            */
+                                      .Where(e => e.TournoiId == id)
+                                      .ToListAsync();
 
-            // OPTION B: If you use a Join Table (TournoiEquipe) - MORE COMMON
-            // This assumes you have a Many-to-Many relationship
-            /*
-            var teams = await _context.TournoiEquipes
-                .Where(te => te.TournoiId == id)
-                .Select(te => te.Equipe)
-                .ToListAsync();
-            */
-
-            // OPTION C: If you don't have relationships set up yet and just want all teams (Temporary)
-            var teams = await _context.Equipes.ToListAsync();
-
-            if (teams == null)
+            if (teams == null || !teams.Any())
             {
-                return NotFound();
+                return Ok(new List<Equipe>());
             }
 
             return Ok(teams);
+        }
+
+        // [FIXED] POST: Generate Next Round
+        [HttpPost("{id}/next-round")]
+        public async Task<IActionResult> GenerateNextRound(int id)
+        {
+            var tournoi = await _context.Tournois
+                .Include(t => t.Matchs)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (tournoi == null) return NotFound("Tournoi not found.");
+
+            // 1. Find the current latest round
+            if (!tournoi.Matchs.Any()) return BadRequest("No matches found. Generate Round 1 first.");
+
+            int currentRound = tournoi.Matchs.Max(m => m.Tour);
+            var currentRoundMatches = tournoi.Matchs
+                .Where(m => m.Tour == currentRound)
+                .OrderBy(m => m.Id)
+                .ToList();
+
+            // 2. Validate: All matches must be finished (No draws allowed!)
+            foreach (var match in currentRoundMatches)
+            {
+                if (match.ScoreDomicile == match.ScoreExterieur)
+                {
+                    return BadRequest($"Match #{match.Id} is a DRAW. You must update scores to pick a winner before proceeding.");
+                }
+
+                // Safety Check: If ID is somehow null, stop
+                if (match.EquipeDomicileId == null || match.EquipeExterieurId == null)
+                {
+                    return BadRequest($"Match #{match.Id} has invalid team data.");
+                }
+            }
+
+            // 3. Collect Winners
+            var winnersIds = new List<int>();
+            foreach (var match in currentRoundMatches)
+            {
+                // [FIX IS HERE] We use (int) to force the conversion because we know they aren't null now
+                if (match.ScoreDomicile > match.ScoreExterieur)
+                    winnersIds.Add((int)match.EquipeDomicileId);
+                else
+                    winnersIds.Add((int)match.EquipeExterieurId);
+            }
+
+            // 4. Check if Tournament is over
+            if (winnersIds.Count < 2)
+            {
+                return BadRequest("Tournament is finished! We have a Champion.");
+            }
+
+            // 5. Create Next Round Matches
+            var nextRoundMatches = new List<Match>();
+            DateTime nextDate = currentRoundMatches.Max(m => m.DateMatch).AddDays(2);
+
+            for (int i = 0; i < winnersIds.Count; i += 2)
+            {
+                if (i + 1 < winnersIds.Count)
+                {
+                    var newMatch = new Match
+                    {
+                        TournoiId = tournoi.Id,
+                        EquipeDomicileId = winnersIds[i],
+                        EquipeExterieurId = winnersIds[i + 1],
+                        DateMatch = nextDate,
+                        Lieu = tournoi.Lieu,
+                        Tour = currentRound + 1, // Increment Round Number
+                        ScoreDomicile = 0,
+                        ScoreExterieur = 0
+                    };
+                    nextRoundMatches.Add(newMatch);
+                    nextDate = nextDate.AddHours(4);
+                }
+            }
+
+            _context.Matchs.AddRange(nextRoundMatches);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"Round {currentRound + 1} generated successfully!", matches = nextRoundMatches });
         }
     }
 }

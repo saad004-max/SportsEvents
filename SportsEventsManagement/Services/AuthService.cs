@@ -1,21 +1,19 @@
-﻿using SportsEventsManagement.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using SportsEventsManagement.Data;
 using SportsEventsManagement.Models;
-using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
-using Microsoft.Extensions.Configuration; // [NEW] Needed for reading appsettings
-using Microsoft.IdentityModel.Tokens;     // [NEW] Needed for security keys
-using System.IdentityModel.Tokens.Jwt;    // [NEW] Needed for creating tokens
-using System.Security.Claims;             // [NEW] Needed for adding user info to token
-using System.Text;                        // [NEW] Needed for Encoding
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace SportsEventsManagement.Services
 {
     public class AuthService
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _configuration; // [NEW] Add this field
+        private readonly IConfiguration _configuration;
 
-        // [CHANGE] Inject IConfiguration here
         public AuthService(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
@@ -29,56 +27,40 @@ namespace SportsEventsManagement.Services
                 return null;
             }
 
-            // [NEW] Set a default role if none is provided
-            if (string.IsNullOrEmpty(utilisateur.Role))
-            {
-                utilisateur.Role = "Spectateur";
-            }
-
-            utilisateur.MotDePasse = BCrypt.Net.BCrypt.HashPassword(utilisateur.MotDePasse);
-
             _context.Utilisateurs.Add(utilisateur);
             await _context.SaveChangesAsync();
             return utilisateur;
         }
 
-        // [CHANGE] Return Type is now string? (The Token) instead of Utilisateur?
         public async Task<string?> Login(string email, string password)
         {
             var user = await _context.Utilisateurs.FirstOrDefaultAsync(u => u.Email == email);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.MotDePasse))
+            if (user == null || user.MotDePasse != password)
             {
                 return null;
             }
 
-            // [CHANGE] Return the token instead of the user object
-            return GenerateJwtToken(user);
-        }
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var secretKey = _configuration["Jwt:Key"] ?? "super_secret_key_12345_must_be_long_enough";
+            var key = Encoding.ASCII.GetBytes(secretKey);
 
-        private string GenerateJwtToken(Utilisateur user)
-        {
-            // FIX: Add '?? ""' to handle possible nulls, though we know it exists
-            var keyString = _configuration["Jwt:Key"] ?? "MYSUPERSECRETKEY_FALLBACK_123456";
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email ?? ""),
-                new Claim(ClaimTypes.Role, user.Role ?? "Spectateur")
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.Name, user.Email),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    
+                    // [IMPORTANT] This tells Blazor if you are Admin or User
+                    new Claim(ClaimTypes.Role, user.Role)
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
-            var token = new JwtSecurityToken(
-                _configuration["Jwt:Issuer"],
-                _configuration["Jwt:Audience"],
-                claims,
-                expires: DateTime.Now.AddHours(4),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }

@@ -16,8 +16,7 @@ namespace SportsEventsManagement.Controllers
             _context = context;
         }
 
-        // [CHANGED] GET: api/Match (List of all matches)
-        // Now returns FLATTENED data to prevent errors and missing names
+        // GET: api/Match
         [HttpGet]
         public async Task<IActionResult> GetMatchs()
         {
@@ -31,8 +30,6 @@ namespace SportsEventsManagement.Controllers
                     tour = m.Tour,
                     scoreDomicile = m.ScoreDomicile,
                     scoreExterieur = m.ScoreExterieur,
-
-                    // SAFE STRINGS
                     homeTeam = m.EquipeDomicile != null ? m.EquipeDomicile.Nom : "Unknown",
                     awayTeam = m.EquipeExterieur != null ? m.EquipeExterieur.Nom : "Unknown",
                     tournoiName = m.Tournoi != null ? m.Tournoi.Nom : "Unknown Tournament"
@@ -42,7 +39,7 @@ namespace SportsEventsManagement.Controllers
             return Ok(matches);
         }
 
-        // GET: api/Match/tournoi/5 (For the Bracket)
+        // GET: api/Match/tournoi/5
         [HttpGet("tournoi/{tournoiId}")]
         public async Task<IActionResult> GetMatchesByTournoi(int tournoiId)
         {
@@ -66,24 +63,37 @@ namespace SportsEventsManagement.Controllers
 
         // GET: api/Match/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Match>> GetMatch(int id)
+        public async Task<IActionResult> GetMatch(int id)
         {
-            var match = await _context.Matchs.FindAsync(id);
+            var match = await _context.Matchs
+                .Include(m => m.EquipeDomicile)
+                .Include(m => m.EquipeExterieur)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
             if (match == null) return NotFound();
-            return match;
+
+            return Ok(new
+            {
+                id = match.Id,
+                homeTeam = match.EquipeDomicile?.Nom ?? "Unknown",
+                awayTeam = match.EquipeExterieur?.Nom ?? "Unknown",
+                scoreDomicile = match.ScoreDomicile,
+                scoreExterieur = match.ScoreExterieur
+            });
         }
 
         // PUT: api/Match/5/score
         [HttpPut("{id}/score")]
-        public async Task<IActionResult> UpdateScore(int id, int scoreDom, int scoreExt)
+        public async Task<IActionResult> UpdateScore(int id, [FromBody] ScoreUpdateDto scoreDto)
         {
             var match = await _context.Matchs.FindAsync(id);
             if (match == null) return NotFound();
 
-            match.ScoreDomicile = scoreDom;
-            match.ScoreExterieur = scoreExt;
+            match.ScoreDomicile = scoreDto.ScoreDomicile;
+            match.ScoreExterieur = scoreDto.ScoreExterieur;
+
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(new { message = "Score updated" });
         }
 
         // DELETE: api/Match/5
@@ -95,6 +105,13 @@ namespace SportsEventsManagement.Controllers
             _context.Matchs.Remove(match);
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        // --- DTO CLASS IS NOW INSIDE THE CONTROLLER TO PREVENT ERRORS ---
+        public class ScoreUpdateDto
+        {
+            public int ScoreDomicile { get; set; }
+            public int ScoreExterieur { get; set; }
         }
     }
 }

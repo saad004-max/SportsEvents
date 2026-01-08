@@ -1,6 +1,7 @@
 ﻿@page "/matches"
 @inject HttpClient Http
 @using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
 
 <div class="container" style="max-width: 900px; margin: 40px auto; padding: 20px;">
 
@@ -44,6 +45,17 @@
                         <small style="color: var(--text-muted);">Away</small>
                     </div>
                 </div>
+
+                <AuthorizeView Roles="Admin, Organizer">
+                    <Authorized>
+                        <div style="margin-top: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                            <a href="/matches/@match.id/update" class="btn-sport" style="text-decoration: none; font-size: 0.9rem;">
+                                ✎ Update Result
+                            </a>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
             </div>
         }
     }
@@ -51,20 +63,18 @@
 
 @code {
     private List<MatchListDto>? matches;
-    private string? errorMessage; // Add this to see errors on screen
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // 1. Fetch the data
             var response = await Http.GetAsync("api/Match");
 
             if (response.IsSuccessStatusCode)
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
 
-                // 2. Check if data is not empty before deserializing
                 if (!string.IsNullOrEmpty(jsonString))
                 {
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -73,14 +83,12 @@
             }
             else
             {
-                // Log the specific error code (e.g., 404, 500)
                 errorMessage = $"Server Error: {response.StatusCode}";
                 Console.WriteLine($"API Failed: {response.StatusCode}");
             }
         }
         catch (Exception ex)
         {
-            // This prevents the "Yellow Bar" crash
             errorMessage = $"Critical Error: {ex.Message}";
             Console.WriteLine($"Exception: {ex}");
         }

@@ -1,0 +1,140 @@
+﻿@page "/matches/{Id:int}/update"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin, Organizer")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@using System.Text.Json
+
+<div class="container" style="max-width: 600px; margin: 60px auto;">
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 2.5rem;">UPDATE <span style="color: var(--accent-sport);">SCORE</span></h1>
+        <p style="color: var(--text-muted);">Enter the final result.</p>
+    </div>
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (match == null)
+    {
+        <p style="text-align: center; color: var(--text-muted);">Loading details...</p>
+    }
+    else
+    {
+        <div class="sport-card">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <div style="text-align: center; flex: 1;">
+                    <h2 style="margin: 0; font-size: 1.5rem; color:white;">@match.homeTeam</h2>
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">HOME</span>
+                </div>
+
+                <div style="font-size: 2rem; font-weight: bold; color: var(--text-muted);">VS</div>
+
+                <div style="text-align: center; flex: 1;">
+                    <h2 style="margin: 0; font-size: 1.5rem; color:white;">@match.awayTeam</h2>
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">AWAY</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 30px;">
+                <div style="text-align: center;">
+                    <input type="number" @bind="scoreUpdate.ScoreDomicile"
+                           style="width: 80px; height: 80px; font-size: 2.5rem; text-align: center; background: #000; border: 2px solid var(--accent-sport); color: white; border-radius: 10px;" />
+                </div>
+
+                <div style="text-align: center;">
+                    <input type="number" @bind="scoreUpdate.ScoreExterieur"
+                           style="width: 80px; height: 80px; font-size: 2.5rem; text-align: center; background: #000; border: 2px solid var(--accent-secondary); color: white; border-radius: 10px;" />
+                </div>
+            </div>
+
+            <button class="btn-primary-sport" style="width: 100%; margin-bottom: 15px;" @onclick="SaveScore">
+                <span>Update Scoreboard</span>
+            </button>
+
+            <div style="text-align: center;">
+                <a href="/matches" style="color: var(--text-muted); text-decoration: none;">Cancel</a>
+            </div>
+
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private MatchDto? match;
+    private ScoreUpdateDto scoreUpdate = new ScoreUpdateDto();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 1. Get the match details so we can see Team Names
+            var response = await Http.GetAsync($"api/Match/{Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                match = JsonSerializer.Deserialize<MatchDto>(json, options);
+
+                // 2. Pre-fill the input boxes with current score
+                if (match != null)
+                {
+                    scoreUpdate.ScoreDomicile = match.scoreDomicile;
+                    scoreUpdate.ScoreExterieur = match.scoreExterieur;
+                }
+            }
+            else
+            {
+                errorMessage = "Match not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task SaveScore()
+    {
+        try
+        {
+            // 3. Send the NEW score to the backend
+            var response = await Http.PutAsJsonAsync($"api/Match/{Id}/score", scoreUpdate);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Go back to the match list
+                Nav.NavigateTo("/matches");
+            }
+            else
+            {
+                errorMessage = "Failed to save score. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    // DTOs to match your Controller
+    public class MatchDto
+    {
+        public int id { get; set; }
+        public string homeTeam { get; set; } = "";
+        public string awayTeam { get; set; } = "";
+        public int scoreDomicile { get; set; }
+        public int scoreExterieur { get; set; }
+    }
+
+    public class ScoreUpdateDto
+    {
+        public int ScoreDomicile { get; set; }
+        public int ScoreExterieur { get; set; }
+    }
+}

@@ -1,15 +1,33 @@
 ﻿@page "/tournaments/{Id:int}/bracket"
 @inject HttpClient Http
+@inject NavigationManager Nav
 @using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
 
 <div class="container" style="max-width: 1000px; margin: 40px auto;">
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px;">
         <h1>Tournament <span style="color: var(--accent-sport);">Bracket</span></h1>
-        <a href="/tournaments/@Id" class="btn-sport" style="text-decoration:none; font-size:0.9rem;">
-            ← Back to Info
-        </a>
+
+        <div style="display:flex; gap: 15px; align-items: center;">
+            <AuthorizeView Roles="Admin, Organizer">
+                <Authorized>
+                    <button class="btn-primary-sport" @onclick="GenerateNextRound">
+                        Generate Next Round ➔
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+
+            <a href="/tournaments/@Id" class="btn-sport" style="text-decoration:none; font-size:0.9rem;">
+                ← Back to Info
+            </a>
+        </div>
     </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" style="margin-bottom: 20px;">@errorMessage</div>
+    }
 
     @if (matches == null)
     {
@@ -78,8 +96,14 @@
 @code {
     [Parameter] public int Id { get; set; }
     private List<BracketMatchDto>? matches;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadMatches();
+    }
+
+    private async Task LoadMatches()
     {
         try
         {
@@ -90,6 +114,31 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // [NEW] Logic to generate the next round
+    private async Task GenerateNextRound()
+    {
+        errorMessage = null; // Clear old errors
+        try
+        {
+            var response = await Http.PostAsync($"api/Tournoi/{Id}/next-round", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Refresh the list to show the new matches immediately
+                await LoadMatches();
+            }
+            else
+            {
+                // Show the error message (e.g. "Match #5 is a draw")
+                errorMessage = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Connection Error: {ex.Message}";
         }
     }
 

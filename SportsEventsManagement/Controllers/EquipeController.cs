@@ -89,5 +89,16 @@ namespace SportsEventsManagement.Controllers
 
             return NoContent();
         }
+        // GET: api/Tournoi/5/teams
+        [HttpGet("{id}/teams")]
+        public async Task<ActionResult<IEnumerable<Equipe>>> GetTeamsByTournament(int id)
+        {
+            // This explicitly filters teams that belong to the Tournament ID provided in the URL
+            var teams = await _context.Equipes
+                                      .Where(e => e.TournoiId == id)
+                                      .ToListAsync();
+
+            return Ok(teams);
+        }
     }
 }

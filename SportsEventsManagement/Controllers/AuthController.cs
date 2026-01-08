@@ -21,13 +21,10 @@ namespace SportsEventsManagement.Controllers
             var newUser = new Utilisateur
             {
                 Email = request.Email,
-
-                // Map English request to French model properties
                 MotDePasse = request.Password,
-                Nom = "New User",   // Default value (since RegisterRequest doesn't have Name yet)
-                Telephone = "",     // Default value
-
-                Role = request.Role
+                Nom = "New User",
+                Telephone = "",
+                Role = request.Role // Saves "Admin" or "User"
             };
 
             var user = await _authService.Register(newUser);
@@ -52,20 +49,18 @@ namespace SportsEventsManagement.Controllers
             return Ok(new { Token = token });
         }
 
-        // --- DTO CLASSES ---
-
+        // DTOs
         public class LoginRequest
         {
             public string Email { get; set; } = string.Empty;
             public string Password { get; set; } = string.Empty;
         }
 
-        // [NEW] Helper class for Registration
         public class RegisterRequest
         {
             public string Email { get; set; } = string.Empty;
             public string Password { get; set; } = string.Empty;
-            public string Role { get; set; } = "User"; // Default to "User" if not sent
+            public string Role { get; set; } = "User";
         }
     }
 }
